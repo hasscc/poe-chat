@@ -1,0 +1,41 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Poe Chat",
+        "description": "{tip}",
+        "data": {
+          "name": "名称",
+          "token": "Cookie(p-b)",
+          "bot": "默认机器人",
+          "base": "Poe镜像",
+          "proxy": "代理"
+        }
+      }
+    },
+    "error": {
+      "cannot_access": "Can't access the poe.com"
+    },
+    "abort": {
+      "already_configured": "This name is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Poe Chat",
+        "description": "{tip}",
+        "data": {
+          "name": "名称",
+          "token": "Cookie(p-b)",
+          "bot": "默认机器人",
+          "base": "Poe镜像",
+          "proxy": "代理"
+        }
+      }
+    },
+    "error": {
+      "cannot_access": "Can't access the poe.com"
+    }
+  }
+}

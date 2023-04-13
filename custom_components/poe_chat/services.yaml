@@ -1,0 +1,27 @@
+chat:
+  description: Chat with Poe
+  fields:
+    name:
+      description: Config entity name
+      example: poe
+      required: true
+      selector:
+        text:
+    bot:
+      description: Bot ID
+      example: capybara
+      required: false
+      selector:
+        text:
+    message:
+      description: Message to send
+      example: Hello
+      required: true
+      selector:
+        text:
+    throw:
+      description: Throw result
+      default: true
+      example: true
+      selector:
+        boolean:
