@@ -77,7 +77,7 @@ wget -q -O - https://hacs.vip/get | HUB_DOMAIN=ghproxy.com/github.com DOMAIN=poe
       entity_id: sensor.xiaomi_x08c_xxxx_conversation
       id: send
     - platform: event
-      event_type: poe_chat.replay
+      event_type: poe_chat.reply
       event_data:
         conversation_id: "{{ conversation_id }}"
       id: reply
@@ -90,8 +90,14 @@ wget -q -O - https://hacs.vip/get | HUB_DOMAIN=ghproxy.com/github.com DOMAIN=poe
             - condition: template
               value_template: |-
                   {% set sta = trigger.to_state.state|default('') %}
-                  {{ sta|regex_findall('请问|告诉我')|length > 0 }}
+                  {{ sta|regex_findall('给我|请问|告诉我')|length > 0 }}
           sequence:
+            - service: xiaomi_miot.intelligent_speaker
+              data:
+                entity_id: media_player.xiaomi_x08c_xxxx
+                text: 闭嘴
+                execute: true
+                silent: true
             - service: poe_chat.chat
               data:
                 name: poe # Config entry name
