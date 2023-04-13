@@ -4,9 +4,9 @@
   "codeowners": ["@al-one"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/hasscc/uyou",
+  "documentation": "https://github.com/hasscc/poe-chat",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/hasscc/uyou/issues",
+  "issue_tracker": "https://github.com/hasscc/poe-chat/issues",
   "requirements": ["poe-api>=0.2.9"],
   "version": "0.0.0"
 }
