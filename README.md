@@ -1,6 +1,5 @@
 # 🤖 Poe for Home Assistant
 
-
 <a name="installing"></a>
 ## Installation
 
@@ -29,6 +28,7 @@ wget -q -O - https://hacs.vip/get | HUB_DOMAIN=ghproxy.com/github.com DOMAIN=poe
 
 - `name`: Config entry name, unique
 - `token`: Poe token, `p-b` in cookies
+- `proxy`: Proxy to use, `socks5://127.0.0.1:7890`
 
 
 ## Using
@@ -88,7 +88,9 @@ wget -q -O - https://hacs.vip/get | HUB_DOMAIN=ghproxy.com/github.com DOMAIN=poe
             - condition: trigger
               id: send
             - condition: template
-              value_template: "{{ '请问' in trigger.to_state.state }}"
+              value_template: |-
+                  {% set sta = trigger.to_state.state|default('') %}
+                  {{ sta|regex_findall('请问|告诉我')|length > 0 }}
           sequence:
             - service: poe_chat.chat
               data:
