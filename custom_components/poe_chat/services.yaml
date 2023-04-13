@@ -19,8 +19,13 @@ chat:
       required: true
       selector:
         text:
+    conversation_id:
+      description: Conversation ID
+      required: false
+      selector:
+        text:
     throw:
-      description: Throw result
+      description: Throw reply
       default: true
       example: true
       selector:

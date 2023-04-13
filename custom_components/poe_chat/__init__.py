@@ -107,6 +107,7 @@ class ComponentServices:
                 vol.Required('name'): cv.string,
                 vol.Optional('bot'): cv.string,
                 vol.Required('message'): cv.string,
+                vol.Optional('conversation_id'): cv.string,
                 vol.Optional('extra'): cv.match_all,
                 vol.Optional('throw', default=False): cv.boolean,
             }),

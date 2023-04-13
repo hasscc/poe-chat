@@ -25,9 +25,23 @@ wget -q -O - https://hacs.vip/get | HUB_DOMAIN=ghproxy.com/github.com DOMAIN=poe
 3. Call this [`service: shell_command.update_poe_chat`](https://my.home-assistant.io/redirect/developer_call_service/?service=shell_command.update_poe_chat) in Developer Tools
 
 
+## Config
+
+- `name`: Config entry name, unique
+- `token`: Poe token, `p-b` in cookies
+
+
 ## Using
 
 - [![Call service: poe_chat.chat](https://my.home-assistant.io/badges/developer_call_service.svg) `poe_chat.chat`](https://my.home-assistant.io/redirect/developer_call_service/?service=poe_chat.chat)
+  ```yaml
+  service: poe_chat.chat
+  data:
+      name: poe # Config entry name
+      bot: capybara
+      message: Hello
+      conversation_id: xxxx
+  ```
 
 ### Event
 
@@ -39,17 +53,60 @@ wget -q -O - https://hacs.vip/get | HUB_DOMAIN=ghproxy.com/github.com DOMAIN=poe
     name: poe
     bot: capybara
     message: Hello
+    conversation_id: xxxx
     id: TWVzc2FnZTozMjM1OTk4Nzc=
     messageId: 323599877
     creationTime: 1681373526812436
     state: incomplete
-    text: Hello! How can I assist you today?
     author: capybara
+    text: Hello! How can I assist you today?
     linkifiedText: Hello! How can I assist you today?
-    suggestedReplies: []
-    vote: null
-    voteReason: null
     text_new: assist you today?
+    suggestedReplies: []
+  ```
+
+### Example
+
+- Chat with Xiaoai speaker
+  ```yaml
+  alias: Chat with Xiaoai speaker
+  trigger_variables:
+    conversation_id: xiaoai_chat
+  trigger:
+    - platform: state
+      entity_id: sensor.xiaomi_x08c_xxxx_conversation
+      id: send
+    - platform: event
+      event_type: poe_chat.replay
+      event_data:
+        conversation_id: "{{ conversation_id }}"
+      id: reply
+  condition: []
+  action:
+    - choose:
+        - conditions:
+            - condition: trigger
+              id: send
+            - condition: template
+              value_template: "{{ '请问' in trigger.to_state.state }}"
+          sequence:
+            - service: poe_chat.chat
+              data:
+                name: poe # Config entry name
+                bot: chinchilla
+                message: "{{ trigger.to_state.state }}"
+                conversation_id: "{{ conversation_id }}"
+        - conditions:
+            - condition: trigger
+              id: reply
+          sequence:
+            - service: xiaomi_miot.intelligent_speaker
+              data:
+                entity_id: media_player.xiaomi_x08c_xxxx
+                text: "{{ trigger.event.data.text }}"
+                execute: false
+  mode: queued
+  max: 10
   ```
 
 
