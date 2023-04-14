@@ -212,10 +212,18 @@ class PoeClient(poe.Client):
                 self.hass.bus.async_fire(f'{DOMAIN}.reply_chunk', reply)
         except Exception as exc:
             _LOGGER.error('Error sending message: %s', [kwargs, type(exc), exc])
+            self.hass.bus.async_fire(f'{DOMAIN}.reply_error', {
+                **kwargs,
+                'error': str(exc) or type(exc),
+            })
         if not reply:
-            self.disconnect_ws()
-            self.connect_ws()
+            self.reconnect_ws()
         return reply
+
+    def reconnect_ws(self):
+        self.disconnect_ws()
+        self.init()
+        self.connect_ws()
 
     def get_bot(self, display_name):
         url = f'{self.home_url.rstrip("/")}/_next/data/{self.next_data["buildId"]}/{display_name}.json'

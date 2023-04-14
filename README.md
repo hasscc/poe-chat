@@ -28,7 +28,7 @@ wget -q -O - https://hacs.vip/get | HUB_DOMAIN=ghproxy.com/github.com DOMAIN=poe
 
 - `name`: Config entry name, unique
 - `token`: Poe token, `p-b` in cookies
-- `proxy`: Proxy to use, `socks5://127.0.0.1:7890`
+- `proxy`: Proxy to use, `socks5://192.168.88.1:7890`
 
 
 ## Using
@@ -67,7 +67,7 @@ wget -q -O - https://hacs.vip/get | HUB_DOMAIN=ghproxy.com/github.com DOMAIN=poe
 
 ### Example
 
-- Chat with Xiaoai speaker
+- Chat with Xiaoai speaker via [`hass-xiaoai-miot`](https://github.com/al-one/hass-xiaoai-miot)
   ```yaml
   alias: Chat with Xiaoai speaker
   trigger_variables:
