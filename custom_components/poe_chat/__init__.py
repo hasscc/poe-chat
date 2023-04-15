@@ -110,6 +110,7 @@ class ComponentServices:
                 vol.Optional('conversation_id'): cv.string,
                 vol.Optional('extra'): cv.match_all,
                 vol.Optional('throw', default=False): cv.boolean,
+                vol.Optional('throw_chunk', default=False): cv.boolean,
             }),
         )
 
@@ -134,7 +135,6 @@ class ComponentServices:
                 persistent_notification.async_create(
                     self.hass, f'{reply}', f'Poe chat reply', f'{DOMAIN}-reply',
                 )
-            self.hass.bus.async_fire(f'{DOMAIN}.reply', reply)
         return reply
 
 
@@ -181,41 +181,84 @@ class PoeClient(poe.Client):
         self.ws_domain = f"tch{random.randint(1, int(1e6))}"
 
     def init(self):
-        self.next_data = self.get_next_data(overwrite_vars=True)
-        self.channel = self.get_channel_data()
-        self.gql_headers = {
-            **self.headers,
-            "poe-formkey": self.formkey,
-            "poe-tchannel": self.channel["channel"],
-        }
-        self.connect_ws()
-        self.bots = self.get_bots(download_next_data=False)
-        self.bot_names = self.get_bot_names()
-        self.subscribe()
-        _LOGGER.warning('Init client: %s', [
-            self.session.cookies, self.get_websocket_url(), self.channel, self.bot_names,
-        ])
+        try:
+            self.next_data = self.get_next_data(overwrite_vars=True)
+            self.channel = self.get_channel_data()
+            self.gql_headers = {
+                **self.headers,
+                "poe-formkey": self.formkey,
+                "poe-tchannel": self.channel["channel"],
+            }
+            self.connect_ws()
+            self.bots = self.get_bots(download_next_data=False)
+            self.bot_names = self.get_bot_names()
+            self.subscribe()
+            _LOGGER.warning('Init client: %s', [
+                self.session.cookies, self.get_websocket_url(), self.channel, self.bot_names,
+            ])
+        except RuntimeError as exc:
+            _LOGGER.error('Init error: %s', [
+                exc, self.session.cookies, self.get_websocket_url(), self.channel, self.gql_headers, self.bot_names,
+            ])
+            raise exc
 
     def send(self, **kwargs):
         bot = kwargs.get(CONF_BOT) or self.config.get(CONF_BOT) or 'capybara'
         msg = kwargs.get('message')
+        ext = kwargs.get('extra') or {}
         if not msg:
             return None
 
         reply = None
+        throw_chunk = kwargs.get('throw_chunk', False)
+        throw = kwargs.get('throw', throw_chunk)
         try:
+            txt = ''
+            siz = int(ext.get('chunk_size', 2) or 0)
             for chunk in self.send_message(bot, msg):
+                eof = True
+                new = chunk.get('text_new', '')
+                txt += new
+                if eof and siz:
+                    eof = len(txt) >= siz
+                if eof and ext.get('chunk_line', False):
+                    eof = txt.endswith('\n')
+                if eof and ext.get('chunk_code', False) and '```' in txt:
+                    eof = txt.endswith('```\n') and txt != new
+                _LOGGER.warning('reply_chunk: %s', [eof, new, txt])
                 reply = {
                     **kwargs,
                     **chunk,
+                    'text_new': txt,
                 }
+                if eof:
+                    txt = ''
+                    self.hass.bus.async_fire(f'{DOMAIN}.reply_chunk', reply)
+                    if throw_chunk:
+                        persistent_notification.async_create(
+                            self.hass, f'{msg}\n\n------\n\n{reply.get("linkifiedText")}',
+                            f'Poe chat reply', f'{DOMAIN}-reply',
+                        )
+            if txt and reply:
                 self.hass.bus.async_fire(f'{DOMAIN}.reply_chunk', reply)
+            if reply:
+                self.hass.bus.async_fire(f'{DOMAIN}.reply', reply)
+                if throw:
+                    persistent_notification.async_create(
+                        self.hass, f'{msg}\n\n------\n\n{reply.get("linkifiedText")}',
+                        f'Poe chat reply', f'{DOMAIN}-reply',
+                    )
         except Exception as exc:
             _LOGGER.error('Error sending message: %s', [kwargs, type(exc), exc])
             self.hass.bus.async_fire(f'{DOMAIN}.reply_error', {
                 **kwargs,
                 'error': str(exc) or type(exc),
             })
+            if throw:
+                persistent_notification.async_create(
+                    self.hass, f'{msg}\n\n------\n\n{exc}',
+                    f'Poe chat error', f'{DOMAIN}-reply',
+                )
         if not reply:
             self.reconnect_ws()
         return reply

@@ -26,7 +26,13 @@ chat:
         text:
     throw:
       description: Throw reply
-      default: true
+      default: false
+      example: false
+      selector:
+        boolean:
+    throw_chunk:
+      description: Throw reply chunked
+      default: false
       example: true
       selector:
         boolean:
