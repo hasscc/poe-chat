@@ -193,7 +193,7 @@ class PoeClient(poe.Client):
             self.bots = self.get_bots(download_next_data=False)
             self.bot_names = self.get_bot_names()
             self.subscribe()
-            _LOGGER.warning('Init client: %s', [
+            _LOGGER.info('Init client: %s', [
                 self.session.cookies, self.get_websocket_url(), self.channel, self.bot_names,
             ])
         except RuntimeError as exc:
@@ -225,7 +225,6 @@ class PoeClient(poe.Client):
                     eof = txt.endswith('\n')
                 if eof and ext.get('chunk_code', False) and '```' in txt:
                     eof = txt.endswith('```\n') and txt != new
-                _LOGGER.warning('reply_chunk: %s', [eof, new, txt])
                 reply = {
                     **kwargs,
                     **chunk,
