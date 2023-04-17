@@ -41,8 +41,8 @@ wget -q -O - https://hacs.vip/get | HUB_DOMAIN=ghproxy.com/github.com DOMAIN=poe
       bot: capybara
       message: Hello
       conversation_id: xxxx
-      throw: false      # Throw reply to HA notification
-      throw_chunk: true # Throw reply chunked to HA notification
+      throw: false      # Output reply result to HA notifications
+      throw_chunk: true # Output chunked reply text to HA notifications
       extra: # Optional
           chunk_size: 128
           chunk_line: true
@@ -83,7 +83,7 @@ wget -q -O - https://hacs.vip/get | HUB_DOMAIN=ghproxy.com/github.com DOMAIN=poe
 
 ### Example
 
-- Chat with Xiaoai speaker via [`hass-xiaoai-miot`](https://github.com/al-one/hass-xiaoai-miot)
+- Chat with Xiaoai speaker via [`hass-xiaomi-miot`](https://github.com/al-one/hass-xiaomi-miot)
   ```yaml
   alias: Chat with Xiaoai speaker
   trigger_variables:
