@@ -41,6 +41,12 @@ wget -q -O - https://hacs.vip/get | HUB_DOMAIN=ghproxy.com/github.com DOMAIN=poe
       bot: capybara
       message: Hello
       conversation_id: xxxx
+      throw: false      # Throw reply to HA notification
+      throw_chunk: true # Throw reply chunked to HA notification
+      extra: # Optional
+          chunk_size: 128
+          chunk_line: true
+          chunk_code: true
   ```
 
 ### Event
@@ -63,6 +69,16 @@ wget -q -O - https://hacs.vip/get | HUB_DOMAIN=ghproxy.com/github.com DOMAIN=poe
     linkifiedText: Hello! How can I assist you today?
     text_new: assist you today?
     suggestedReplies: []
+  ```
+- `poe_chat.reply_error`
+  ```yaml
+  event_type: poe_chat.reply_error
+  data:
+    name: poe
+    bot: capybara
+    message: Hello
+    conversation_id: xxxx
+    error: xxxx
   ```
 
 ### Example
