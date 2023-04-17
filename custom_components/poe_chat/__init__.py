@@ -163,6 +163,7 @@ class PoeClient(poe.Client):
     bot_names = None
     ws_domain = None
     ws_connected = None
+    throw_split = '\n\n------\n\n'
 
     def __init__(self, hass: HomeAssistant, config: dict):
         self.hass = hass
@@ -228,7 +229,7 @@ class PoeClient(poe.Client):
         throw = kwargs.get('throw', throw_chunk)
         try:
             txt = ''
-            siz = int(ext.get('chunk_size', 2) or 0)
+            siz = int(ext.get('chunk_size', 2) or 1)
             for chunk in self.send_message(bot, msg):
                 eof = True
                 new = chunk.get('text_new', '')
@@ -246,19 +247,14 @@ class PoeClient(poe.Client):
                 }
                 if eof:
                     txt = ''
-                    self.hass.bus.async_fire(f'{DOMAIN}.reply_chunk', reply)
-                    if throw_chunk:
-                        persistent_notification.async_create(
-                            self.hass, f'{msg}\n\n------\n\n{reply.get("linkifiedText")}',
-                            f'Poe chat reply', f'{DOMAIN}-reply',
-                        )
+                    self.reply_chunk(msg, reply, throw_chunk=throw_chunk)
             if txt and reply:
-                self.hass.bus.async_fire(f'{DOMAIN}.reply_chunk', reply)
+                self.reply_chunk(msg, reply, throw_chunk=throw_chunk)
             if reply:
                 self.hass.bus.async_fire(f'{DOMAIN}.reply', reply)
                 if throw:
                     persistent_notification.async_create(
-                        self.hass, f'{msg}\n\n------\n\n{reply.get("linkifiedText")}',
+                        self.hass, f'{msg}{self.throw_split}{reply.get("linkifiedText")}',
                         f'Poe chat reply', f'{DOMAIN}-reply',
                     )
         except Exception as exc:
@@ -269,12 +265,20 @@ class PoeClient(poe.Client):
             })
             if throw:
                 persistent_notification.async_create(
-                    self.hass, f'{msg}\n\n------\n\n{exc}',
+                    self.hass, f'{msg}{self.throw_split}{exc}',
                     f'Poe chat error', f'{DOMAIN}-reply',
                 )
         if not reply:
             self.reconnect()
         return reply
+
+    def reply_chunk(self, msg, reply, throw_chunk=False):
+        self.hass.bus.async_fire(f'{DOMAIN}.reply_chunk', reply)
+        if throw_chunk:
+            persistent_notification.async_create(
+                self.hass, f'{msg}{self.throw_split}{reply.get("linkifiedText")}',
+                f'Poe chat reply', f'{DOMAIN}-reply',
+            )
 
     async def async_reconnect(self):
         await self.async_disconnect()
