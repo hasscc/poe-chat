@@ -34,6 +34,7 @@ class PoeChatConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(name)
             self._abort_if_unique_id_configured()
             if acc := await get_client_from_config(self.hass, user_input, renew=True):
+                await acc.async_disconnect()
                 if not acc.bots:
                     self.context['last_error'] = 'None bot found'
                 else:
@@ -78,6 +79,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if name := user_input.get(CONF_NAME):
             errors['base'] = 'cannot_access'
             if acc := await get_client_from_config(self.hass, user_input, renew=True):
+                await acc.async_disconnect()
                 if not acc.bot_names:
                     self.context['last_error'] = 'None bot found'
                 else:

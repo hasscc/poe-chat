@@ -3,7 +3,6 @@ import logging
 import asyncio
 import datetime
 import requests
-import random
 import voluptuous as vol
 from functools import partial
 
@@ -51,12 +50,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     async def unload(*args):
         acc = hass.data[DOMAIN][CONF_ACCOUNTS].pop(entry.entry_id, None)
         if acc:
-            acc.disconnect_ws()
+            await acc.async_disconnect()
 
     entry.async_on_unload(
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, unload)
     )
     return True
+
+
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry):
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
+    if entry.entry_id not in hass.data[DOMAIN].get(CONF_ACCOUNTS, {}):
+        return False
+    client = await get_client_from_config(hass, entry)
+    await client.async_disconnect()
+    return True
+
+
+async def async_reload_integration_config(hass, config):
+    for client in hass.data[DOMAIN].get(CONF_ACCOUNTS, {}).values():
+        await client.async_reconnect()
+    return config
 
 
 async def get_client_from_config(hass, config, renew=False):
@@ -66,7 +83,7 @@ async def get_client_from_config(hass, config, renew=False):
             **config.data,
             **config.options,
             'entry': config,
-            CONF_ENTITY_ID: config.data.get(CONF_NAME) or config.entry_id,
+            CONF_ENTITY_ID: config.entry_id,
         }
     else:
         cfg = {
@@ -76,21 +93,17 @@ async def get_client_from_config(hass, config, renew=False):
 
     if eid := cfg.get(CONF_ENTITY_ID):
         client = hass.data[DOMAIN][CONF_ACCOUNTS].get(eid)
-        if client and not renew:
+        if renew:
+            await client.async_disconnect()
+        elif client:
             return client
 
     client = PoeClient(hass, cfg)
-    await hass.async_add_executor_job(client.init)
+    await client.async_init()
     if eid:
         hass.data[DOMAIN][CONF_ACCOUNTS][eid] = client
 
     return client
-
-
-async def async_reload_integration_config(hass, config):
-    hass.data[DOMAIN]['config'] = config
-    hass.data[DOMAIN].setdefault(CONF_ACCOUNTS, {})
-    return config
 
 
 class ComponentServices:
@@ -125,11 +138,14 @@ class ComponentServices:
     async def async_chat(self, call):
         dat = call.data or {}
         nam = dat.get(CONF_NAME)
-        acc = self.hass.data[DOMAIN][CONF_ACCOUNTS].get(nam) if nam else None
+        acc = None
+        for acc in self.hass.data[DOMAIN][CONF_ACCOUNTS].values():
+            if nam in [acc.name, acc.entry_id]:
+                break
         if not isinstance(acc, PoeClient):
             _LOGGER.warning('Account %s not found in %s.', nam, self.hass.data[DOMAIN].get(CONF_ACCOUNTS))
             return False
-        reply = await self.hass.async_add_executor_job(partial(acc.send, **dat))
+        reply = await acc.async_send(**dat)
         if reply:
             if dat.get('throw', False):
                 persistent_notification.async_create(
@@ -145,11 +161,13 @@ class PoeClient(poe.Client):
     formkey = None
     bots = None
     bot_names = None
+    ws_domain = None
     ws_connected = None
 
     def __init__(self, hass: HomeAssistant, config: dict):
         self.hass = hass
         self.config = config
+        self.name = config.get(CONF_NAME)
         self.entry_id = config.get(CONF_ENTITY_ID)
         if base := config.get(CONF_BASE):
             poe_home = 'https://poe.com/'
@@ -173,26 +191,19 @@ class PoeClient(poe.Client):
 
         self.session.cookies.set("p-b", self.token)
         self.headers = {
-            "User-Agent": config.get('user_agent') or USER_AGENT,
+            "User-Agent": config.get("user_agent") or USER_AGENT,
             "Referrer": "https://poe.com/",
             "Origin": "https://poe.com",
         }
         self.session.headers.update(self.headers)
-        self.ws_domain = f"tch{random.randint(1, int(1e6))}"
+
+    async def async_init(self):
+        return await self.hass.async_add_executor_job(partial(self.init))
 
     def init(self):
         try:
-            self.next_data = self.get_next_data(overwrite_vars=True)
-            self.channel = self.get_channel_data()
-            self.gql_headers = {
-                **self.headers,
-                "poe-formkey": self.formkey,
-                "poe-tchannel": self.channel["channel"],
-            }
+            self.setup_connection()
             self.connect_ws()
-            self.bots = self.get_bots(download_next_data=False)
-            self.bot_names = self.get_bot_names()
-            self.subscribe()
             _LOGGER.info('Init client: %s', [
                 self.session.cookies, self.get_websocket_url(), self.channel, self.bot_names,
             ])
@@ -201,6 +212,9 @@ class PoeClient(poe.Client):
                 exc, self.session.cookies, self.get_websocket_url(), self.channel, self.gql_headers, self.bot_names,
             ])
             raise exc
+
+    async def async_send(self, **kwargs):
+        return await self.hass.async_add_executor_job(partial(self.send, **kwargs))
 
     def send(self, **kwargs):
         bot = kwargs.get(CONF_BOT) or self.config.get(CONF_BOT) or 'capybara'
@@ -259,13 +273,21 @@ class PoeClient(poe.Client):
                     f'Poe chat error', f'{DOMAIN}-reply',
                 )
         if not reply:
-            self.reconnect_ws()
+            self.reconnect()
         return reply
 
-    def reconnect_ws(self):
-        self.disconnect_ws()
+    async def async_reconnect(self):
+        await self.async_disconnect()
+        await self.async_init()
+
+    def reconnect(self):
+        if self.ws_connected:
+            self.disconnect_ws()
         self.init()
-        self.connect_ws()
+
+    async def async_disconnect(self):
+        if self.ws_connected:
+            await self.hass.async_add_executor_job(self.disconnect_ws)
 
     def get_bot(self, display_name):
         url = f'{self.home_url.rstrip("/")}/_next/data/{self.next_data["buildId"]}/{display_name}.json'
