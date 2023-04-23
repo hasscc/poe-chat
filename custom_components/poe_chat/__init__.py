@@ -23,6 +23,7 @@ USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' \
 
 SCAN_INTERVAL = datetime.timedelta(seconds=86400)
 CONF_ACCOUNTS = 'accounts'
+CONF_CONFIG = 'config'
 CONF_BOT = 'bot'
 
 CONFIG_SCHEMA = vol.Schema(
@@ -38,6 +39,7 @@ def init_integration_data(hass):
 
 async def async_setup(hass: HomeAssistant, hass_config: dict):
     init_integration_data(hass)
+    hass.data[DOMAIN][CONF_CONFIG] = hass_config.get(DOMAIN, {})
     ComponentServices(hass)
     return True
 
@@ -192,9 +194,14 @@ class PoeClient(poe.Client):
 
         self.session.cookies.set("p-b", self.token)
         self.headers = {
+            **poe.headers,
             "User-Agent": config.get("user_agent") or USER_AGENT,
+            **(self.hass.data[DOMAIN].get(CONF_CONFIG, {}).get("headers") or {}),
             "Referrer": "https://poe.com/",
             "Origin": "https://poe.com",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
         }
         self.session.headers.update(self.headers)
 
