@@ -7,6 +7,6 @@
   "documentation": "https://github.com/hasscc/poe-chat",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/hasscc/poe-chat/issues",
-  "requirements": ["poe-api>=0.3.1"],
+  "requirements": ["poe-api>=0.4.6"],
   "version": "0.0.0"
 }
