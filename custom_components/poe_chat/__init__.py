@@ -20,6 +20,7 @@ DOMAIN = 'poe_chat'
 USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' \
              'AppleWebKit/537.36 (KHTML, like Gecko) ' \
              'Chrome/109.0.0.0 Safari/537.36'
+CLIENT_IDENTIFIER = 'chrome_109'
 
 SCAN_INTERVAL = datetime.timedelta(seconds=86400)
 CONF_ACCOUNTS = 'accounts'
@@ -170,7 +171,7 @@ class PoeClient(poe.Client):
     setup_count = 0
     connect_count = 0
     device_id = None
-    client_identifier = poe.client_identifier
+    client_identifier = CLIENT_IDENTIFIER
     throw_split = '\n\n------\n\n'
 
     def __init__(self, hass: HomeAssistant, config: dict):
