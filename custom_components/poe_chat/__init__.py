@@ -165,6 +165,12 @@ class PoeClient(poe.Client):
     bot_names = None
     ws_domain = None
     ws_connected = None
+    ws_connecting = False
+    ws_error = False
+    setup_count = 0
+    connect_count = 0
+    device_id = None
+    client_identifier = poe.client_identifier
     throw_split = '\n\n------\n\n'
 
     def __init__(self, hass: HomeAssistant, config: dict):
@@ -211,7 +217,7 @@ class PoeClient(poe.Client):
     def init(self):
         try:
             self.setup_connection()
-            self.connect_ws()
+            self.connect_ws(timeout=10)
             _LOGGER.info('Init client: %s', [
                 self.session.cookies, self.get_websocket_url(), self.channel, self.bot_names,
             ])
