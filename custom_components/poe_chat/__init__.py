@@ -20,7 +20,7 @@ DOMAIN = 'poe_chat'
 USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' \
              'AppleWebKit/537.36 (KHTML, like Gecko) ' \
              'Chrome/109.0.0.0 Safari/537.36'
-CLIENT_IDENTIFIER = 'chrome_109'
+CLIENT_IDENTIFIER = None
 
 SCAN_INTERVAL = datetime.timedelta(seconds=86400)
 CONF_ACCOUNTS = 'accounts'
@@ -162,10 +162,8 @@ class PoeClient(poe.Client):
     next_data = None
     channel = None
     formkey = None
-    bots = None
-    bot_names = None
     ws_domain = None
-    ws_connected = None
+    ws_connected = False
     ws_connecting = False
     ws_error = False
     setup_count = 0
