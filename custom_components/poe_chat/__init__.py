@@ -250,6 +250,8 @@ class PoeClient(poe.Client):
                     eof = len(txt) >= siz
                 if eof and ext.get('chunk_line', False):
                     eof = txt.endswith('\n')
+                if eof and ext.get('chunk_mark', False):
+                    eof = txt.endswith(('。', '. ', '！', '! ', '？', '? ', '：', ': ', '；', '; ', '\n'))
                 if eof and ext.get('chunk_code', False) and '```' in txt:
                     eof = txt.endswith('```\n') and txt != new
                 reply = {
