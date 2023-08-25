@@ -1,5 +1,11 @@
 # 🤖 Poe for Home Assistant
 
+
+⚠️ Try: https://github.com/ichuixue/poe-chat
+
+------
+
+
 <a name="installing"></a>
 ## Installation
 
